@@ -1,119 +1,116 @@
-import string
-import random
-from tkinter import *
-from tkinter import messagebox
-import re
-import sqlite3
+*index.html*
+```
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Monkey Tracker</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div id="map"></div>
+	<form id="sighting-form">
+		<label>Date:</label>
+		<input type="date" id="date">
+		<label>Location:</label>
+		<input type="text" id="location">
+		<label>Species:</label>
+		<select id="species">
+			<option value="Rhesus Macaque">Rhesus Macaque</option>
+			<option value="Bonnet Macaque">Bonnet Macaque</option>
+		</select>
+		<label>Quantity:</label>
+		<input type="number" id="quantity">
+		<button id="submit-btn">Submit</button>
+	</form>
+	<script src="script.js"></script>
+</body>
+</html>
+```
+*styles.css*
+```
+body {
+	font-family: Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+}
 
+#map {
+	width: 800px;
+	height: 600px;
+	border: 1px solid black;
+}
 
-with sqlite3.connect("users.db") as db:
-    cursor = db.cursor()
-cursor.execute("CREATE TABLE IF NOT EXISTS users(Username TEXT NOT NULL, GeneratedPassword TEXT NOT NULL);")
-cursor.execute("SELECT * FROM users")
-db.commit()
-db.close()
+#sighting-form {
+	margin-top: 20px;
+}
+```
+*script.js*
+```
+const map = L.map('map').setView([12.9716, 77.5946], 13);
+L.tileLayer('https://{s}.(link unavailable)', {
+	attribution: '&copy; <a href="(link unavailable)">OpenStreetMap</a>',
+	subdomains: ['a', 'b', 'c']
+}).addTo(map);
 
+const sightingForm = document.getElementById('sighting-form');
+sightingForm.addEventListener('submit', (e) => {
+	e.preventDefault();
+	const date = document.getElementById('date').value;
+	const location = document.getElementById('location').value;
+	const species = document.getElementById('species').value;
+	const quantity = document.getElementById('quantity').value;
+	fetch('/api/sightings', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ date, location, species, quantity })
+	})
+	.then((response) => response.json())
+	.then((data) => console.log(data))
+	.catch((error) => console.error(error));
+});
+```
+*Backend (Server-side):*
 
-class GUI():
-    def __init__(self,master):
-        self.master = master
-        self.username = StringVar()
-        self.passwordlen = IntVar()
-        self.generatedpassword = StringVar()
-        self.n_username = StringVar()
-        self.n_generatedpassword = StringVar()
-        self.n_passwordlen = IntVar()
-        
-        root.title('Password Generator')
-        root.geometry('660x500')
-        root.config(bg='#FF8000')
-        root.resizable(False, False)
+*server.js*
+```
+const express = require('express');
+const app = express();
+const mongoose = require('mongoose');
 
-        self.label = Label(text=":PASSWORD GENERATOR:", anchor=N, fg='darkblue', bg='#FF8000', font='arial 20 bold underline')
-        self.label.grid(row=0, column=1)
+mongoose.connect('mongodb://localhost/monkey-tracker', { useNewUrlParser: true, useUnifiedTopology: true });
 
-        self.blank_label1 = Label(text="")
-        self.blank_label1.grid(row=1, column=0, columnspan=2)
-        
-        self.blank_label2 = Label(text="")
-        self.blank_label2.grid(row=2, column=0, columnspan=2)    
+const Sighting = mongoose.model('Sighting', {
+	date: Date,
+	location: String,
+	species: String,
+	quantity: Number
+});
 
-        self.blank_label2 = Label(text="")
-        self.blank_label2.grid(row=3, column=0, columnspan=2)    
+app.post('/api/sightings', (req, res) => {
+	const { date, location, species, quantity } = req.body;
+	const sighting = new Sighting({ date, location, species, quantity });
+	sighting.save()
+		.then(() => res.send({ message: 'Sighting added successfully!' }))
+		.catch((err) => res.status(500).send(err));
+});
 
-        self.user = Label(text="Enter User Name: ", font='times 15 bold', bg='#FF8000', fg='darkblue')
-        self.user.grid(row=4, column=0)
+app.get('/api/sightings', (req, res) => {
+	Sighting.find()
+		.then((sightings) => res.json(sightings))
+		.catch((err) => res.status(500).send(err));
+});
 
-        self.textfield = Entry(textvariable=self.n_username, font='times 15', bd=6, relief='ridge')
-        self.textfield.grid(row=4, column=1)
-        self.textfield.focus_set()
+app.listen(3000, () => {
+	console.log('Server listening on port 3000');
+});
+```
+*models/Sighting.js*
+```
+const mongoose = require('mongoose');
 
-        self.blank_label3 = Label(text="")
-        self.blank_label3.grid(row=5, column=0)
-
-        self.length = Label(text="Enter Password Length: ", font='times 15 bold', bg='#FF8000', fg='darkblue')
-        self.length.grid(row=6, column=0)
-
-        self.length_textfield = Entry(textvariable=self.n_passwordlen, font='times 15', bd=6, relief='ridge')
-        self.length_textfield.grid(row=6, column=1)
-        
-        self.blank_label4 = Label(text="")
-        self.blank_label4.grid(row=7, column=0)
- 
-        self.generated_password = Label(text="Generated Password: ", font='times 15 bold', bg='#FF8000', fg='darkblue')
-        self.generated_password.grid(row=8, column=0)
-
-        self.generated_password_textfield = Entry(textvariable=self.n_generatedpassword, font='times 15', bd=6, relief='ridge', fg='#DC143C')
-        self.generated_password_textfield.grid(row=8, column=1)
-   
-        self.blank_label5 = Label(text="")
-        self.blank_label5.grid(row=9, column=0)
-
-        self.blank_label6 = Label(text="")
-        self.blank_label6.grid(row=10, column=0)
-
-        self.generate = Button(text="GENERATE PASSWORD", bd=3, relief='solid', padx=1, pady=1, font='Verdana", 15 bold', fg='#68228B', bg='#BCEE68', command=self.generate_pass)
-        self.generate.grid(row=11, column=1)
-
-        self.blank_label5 = Label(text="")
-        self.blank_label5.grid(row=12, column=0)
-
-        self.accept = Button(text="ACCEPT", bd=3, relief='solid', padx=1, pady=1, font='Helvetica 15 bold italic', fg='#458B00', bg='#FFFAF0', command=self.accept_fields)
-        self.accept.grid(row=13, column=1)
-
-        self.blank_label1 = Label(text="")
-        self.blank_label1.grid(row=14, column=1)
-
-        self.reset = Button(text="RESET", bd=3, relief='solid', padx=1, pady=1, font='Helvetica 15 bold italic', fg='#458B00', bg='#FFFAF0', command=self.reset_fields)
-        self.reset.grid(row=15, column=1)
-
-
-    def generate_pass(self):
-        upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        lower = "abcdefghijklmnopqrstuvwxyz"
-        chars = "@#%&()\"?!"
-        numbers = "1234567890"
-        upper = list(upper)
-        lower = list(lower)
-        chars = list(chars)
-        numbers = list(numbers)
-        name = self.textfield.get()
-        leng = self.length_textfield.get()
-
-        with sqlite3.connect("users.db") as db:
-            cursor = db.cursor()
-
-        if name=="":
-            messagebox.showerror("Error","Name cannot be empty")
-            return
-
-        if name.isalpha()==False:
-            messagebox.showerror("Error","Name must be a string")
-            self.textfield.delete(0, 25)
-            return
-
-        length = int(leng) 
-
-        if length<6:
-            messagebox.showerror("Error", "Password must be atleast 6 characters long")
-  
+const sightingSchema = new mongoose.Schema({
+	date: Date,
+	location: String,
+	species: String,
+	quantity: Number
+});
